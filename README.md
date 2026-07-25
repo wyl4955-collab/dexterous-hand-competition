@@ -55,7 +55,7 @@ newgrp dialout
 
 ```bash
 cd competition_ws
-source /opt/ros/humble/setup.bash
+source /opt/ros/humble/setup.bash 2>/dev/null || source /opt/ros/jazzy/setup.bash
 ./build.sh
 ```
 

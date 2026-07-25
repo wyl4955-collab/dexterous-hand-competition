@@ -1,58 +1,52 @@
 #!/bin/bash
-# ═══════════════════════════════════════════════════════════════
-# Competition Workspace — One-Command Build
-# ═══════════════════════════════════════════════════════════════
 set -e
+
+# Auto-detect ROS2 distro
+if [ -z "$ROS_DISTRO" ]; then
+  if [ -f /opt/ros/humble/setup.bash ]; then
+    ROS_DISTRO=humble
+  elif [ -f /opt/ros/jazzy/setup.bash ]; then
+    ROS_DISTRO=jazzy
+  elif [ -f /opt/ros/kilted/setup.bash ]; then
+    ROS_DISTRO=kilted
+  else
+    echo "ERROR: No ROS2 installation found. Run setup_competition.sh first."
+    exit 1
+  fi
+fi
 
 echo "======================================="
 echo " Competition Workspace Build"
+echo " ROS2: $ROS_DISTRO"
 echo "======================================="
 
-# Check ROS2 environment
-if [ -z "$ROS_DISTRO" ]; then
-    echo "ERROR: ROS2 not sourced. Run: source /opt/ros/humble/setup.bash"
-    exit 1
-fi
-echo "ROS2: $ROS_DISTRO"
+source /opt/ros/${ROS_DISTRO}/setup.bash
 
 # Check serial permissions
 if [ -e /dev/ttyUSB0 ] && [ ! -w /dev/ttyUSB0 ]; then
-    echo "WARNING: No write permission on /dev/ttyUSB0"
-    echo "  Fix: sudo usermod -a -G dialout \$USER && newgrp dialout"
+    echo "WARNING: No write permission on /dev/ttyUSB0 — run: sudo chmod 666 /dev/ttyUSB0"
 fi
 
-# Clean build (optional)
 if [ "$1" == "--clean" ]; then
     echo "Cleaning previous build..."
     rm -rf build/ install/ log/
 fi
 
-# Build
 echo ""
 echo "Building all packages..."
-colcon build --symlink-install \
-    --cmake-args -DCMAKE_BUILD_TYPE=Release \
-    --packages-up-to competition_supervisor
+colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 
-# Check result
 if [ $? -eq 0 ]; then
     echo ""
     echo "======================================="
     echo " BUILD SUCCESSFUL"
     echo "======================================="
     echo ""
-    echo "Source the workspace:"
-    echo "  source install/setup.bash"
+    echo "source install/setup.bash"
     echo ""
-    echo "Launch everything:"
-    echo "  ros2 launch competition_bringup.launch.py"
-    echo ""
-    echo "Launch with mock arm (development):"
+    echo "Launch:"
     echo "  ros2 launch competition_bringup.launch.py mock_arm:=true"
 else
-    echo ""
-    echo "======================================="
-    echo " BUILD FAILED — check errors above"
-    echo "======================================="
+    echo "BUILD FAILED"
     exit 1
 fi
