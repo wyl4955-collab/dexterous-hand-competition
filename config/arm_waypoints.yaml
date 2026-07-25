@@ -1,0 +1,62 @@
+# Robot arm waypoints for competition tasks
+# All coordinates in mm, relative to table origin
+# These need to be calibrated for your actual setup!
+
+waypoints:
+  # ──── Shared reference points ────
+  home:
+    description: "Safe home position above table"
+    position: [100, 75, 200]    # x, y, z (mm)
+    orientation: [0, 0, 0]      # roll, pitch, yaw (degrees)
+
+  # ──── Powder weighing ────
+  powder_container:
+    description: "Above the powder container"
+    position: [50, 20, 80]
+    orientation: [0, 0, 0]
+
+  powder_scoop_in:
+    description: "Spoon inserted into powder"
+    position: [50, 20, 30]      # lowered into powder
+    orientation: [0, 0, 0]
+
+  scale_above:
+    description: "Above the scale weighing paper"
+    position: [150, 75, 60]
+    orientation: [25, 0, 0]     # tilted 25° for pouring
+
+  scale_pour:
+    description: "Pouring position over scale"
+    position: [150, 75, 40]
+    orientation: [35, 0, 0]     # steeper tilt for faster pour
+
+  # ──── Bean picking ────
+  bean_area:
+    description: "Above the bean scatter area"
+    position: [100, 120, 80]
+    orientation: [0, 0, 0]
+
+  bean_approach_offset:
+    description: "Offset above a detected bean (added to bean position)"
+    z_offset: 30                # mm above bean
+
+  bean_container:
+    description: "Above the target container for beans"
+    position: [180, 30, 80]
+    orientation: [0, 0, 0]
+
+  bean_drop:
+    description: "Just above container to release bean"
+    position: [180, 30, 20]
+    orientation: [0, 0, 0]
+
+  # ──── Tool pickup ────
+  tweezers_pickup:
+    description: "Position to pick up tweezers"
+    position: [20, 140, 40]
+    orientation: [0, 0, 0]
+
+  spoon_pickup:
+    description: "Position to pick up spoon"
+    position: [20, 160, 40]
+    orientation: [0, 0, 0]

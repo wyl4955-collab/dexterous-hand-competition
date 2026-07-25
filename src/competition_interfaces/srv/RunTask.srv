@@ -1,0 +1,7 @@
+# Request task execution
+string task_name           # "powder_weighing" or "bean_picking"
+float32 target_weight      # for powder weighing: target weight in g (default 5.0)
+int32   bean_count         # for bean picking: number of beans (default 3)
+---
+bool   accepted
+string message

@@ -1,0 +1,36 @@
+# Competition task parameters
+
+powder_weighing:
+  target_weight: 5.00        # grams
+  tolerance: 0.05            # ± grams allowed
+  timeout: 120.0             # seconds
+  # Vibration calibration (must be calibrated with actual powder!)
+  tap_force_to_drop_mg:     # force_level → estimated drop per tap (grams)
+    30:  0.01
+    50:  0.02
+    80:  0.04
+    120: 0.08
+    180: 0.15
+    250: 0.30
+  # Tapping strategy thresholds
+  coarse_threshold: 1.0      # grams above target → coarse pour
+  fine_threshold: 0.1        # grams above target → fine tap
+  micro_threshold: 0.05      # grams above target → micro tap
+
+bean_picking:
+  bean_count: 3              # beans to move
+  timeout: 120.0             # seconds
+  max_retries_per_bean: 3
+  # Grasp force parameters (verified by calibration experiment)
+  bean_grasp_force: 40       # grams — optimal for soybeans
+  bean_hold_force: 55        # grams — anti-slip
+  bean_max_force: 80         # grams — beyond this, bean cracks
+  # Approach parameters
+  approach_height: 30        # mm above bean
+  descent_speed: 3           # mm/s
+  lift_height: 50            # mm above table
+  # Bean detection
+  min_bean_radius_px: 5
+  max_bean_radius_px: 30
+  min_bean_circularity: 0.5
+  min_bean_separation: 10.0  # mm — minimum distance from other beans
