@@ -1,5 +1,3 @@
-# Force sensor calibration
-# Requires hand to be empty (no load on fingers)
 ---
 bool success
 string message

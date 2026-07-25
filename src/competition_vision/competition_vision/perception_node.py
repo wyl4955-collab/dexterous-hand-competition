@@ -1,152 +1,141 @@
 #!/usr/bin/env python3
-"""
-Perception Node — the "eyes" of the competition system.
-
-Publishes:
-  /vision/beans       (BeanDetections) — detected bean positions in world frame
-  /vision/tool        (ToolState)      — tweezers/spoon tip position
-  /vision/scale       (Float32)        — scale weight reading (grams)
-  /vision/debug       (Image)          — annotated debug image
-
-Subscribes:
-  /camera/color/image_raw  (Image)     — from RealSense or USB camera
-"""
-
+"""Perception node — publishes bean positions, tool state, scale weight."""
+import cv2, numpy as np, serial, re, time
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float32
 from cv_bridge import CvBridge
-
-from .bean_detector import BeanDetector
-from .tool_detector import ToolDetector
-from .scale_reader import ScaleReader
-from .world_state import WorldState, BeanInfo, ToolInfo
+from competition_interfaces.msg import BeanDetections, BeanDetection, ToolState
 
 
 class PerceptionNode(Node):
-    """Main perception node — fuses all sensor data into WorldState."""
-
     def __init__(self):
         super().__init__('perception_node')
-
-        # Load config
         self.declare_parameter('camera_topic', '/camera/color/image_raw')
-        self.declare_parameter('publish_debug', True)
+        self.declare_parameter('scale_port', '/dev/ttyUSB1')
+        self.declare_parameter('fps', 20)
 
-        # Components
         self.bridge = CvBridge()
-        self.bean_detector = BeanDetector()
-        self.tool_detector = ToolDetector()
-        self.scale_reader = ScaleReader()
+        self._beans = []
+        self._tool = None
+        self._scale_weight = None
+        self._image = None
 
-        # Shared world state (thread-safe)
-        self.world = WorldState()
+        # Scale serial
+        try:
+            self.scale_ser = serial.Serial(
+                self.get_parameter('scale_port').value, 9600, timeout=0.3)
+        except Exception:
+            self.scale_ser = None
 
         # Publishers
-        self.beans_pub = self.create_publisher(
-            BeanDetections, '/vision/beans', 10)
-        self.tool_pub = self.create_publisher(
-            ToolState, '/vision/tool', 10)
-        self.scale_pub = self.create_publisher(
-            Float32, '/vision/scale', 10)
-        self.debug_pub = self.create_publisher(
-            Image, '/vision/debug', 10)  # only if publish_debug is True
+        self.beans_pub = self.create_publisher(BeanDetections, '/vision/beans', 10)
+        self.tool_pub = self.create_publisher(ToolState, '/vision/tool', 10)
+        self.scale_pub = self.create_publisher(Float32, '/vision/scale', 10)
+        self.debug_pub = self.create_publisher(Image, '/vision/debug', 10)
 
         # Subscriber
-        self.camera_sub = self.create_subscription(
-            Image,
-            self.get_parameter('camera_topic').value,
-            self.image_callback,
-            10)
-
-        # Scale polling timer (independent of camera, 10 Hz)
-        self.scale_timer = self.create_timer(0.1, self.scale_timer_callback)
-
-        # State publishing timer (20 Hz)
-        self.pub_timer = self.create_timer(0.05, self.publish_state)
+        self.create_subscription(Image, self.get_parameter('camera_topic').value,
+                                 self._image_cb, 10)
+        # Timer for scale + publish
+        self.create_timer(0.05, self._timer_cb)
 
         self.get_logger().info('Perception node started')
 
-    # ========== Image callback ==========
-    def image_callback(self, msg: Image):
-        """Process each camera frame: detect beans + tool."""
+    # ── Image processing ──
+    def _image_cb(self, msg):
         try:
-            frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-        except Exception as e:
-            self.get_logger().error(f'Image conversion failed: {e}')
+            self._image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
+        except Exception:
             return
+        hsv = cv2.cvtColor(self._image, cv2.COLOR_BGR2HSV)
+        # Bean detection: yellow/green color range
+        mask = cv2.inRange(hsv, np.array([15,50,50]), np.array([85,255,255]))
+        mask = cv2.erode(mask, np.ones((3,3),np.uint8), iterations=1)
+        mask = cv2.dilate(mask, np.ones((3,3),np.uint8), iterations=2)
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        beans = []
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            if area < 30 or area > 800: continue
+            perim = cv2.arcLength(cnt, True)
+            if perim < 1: continue
+            circ = 4*np.pi*area/(perim*perim)
+            if circ < 0.5: continue
+            M = cv2.moments(cnt)
+            if M['m00'] < 1: continue
+            cx, cy = M['m10']/M['m00'], M['m01']/M['m00']
+            beans.append(BeanDetection(x=cx*0.3, y=cy*0.3,
+                         radius=np.sqrt(area/np.pi), confidence=min(circ,1.0)))
+        # Sort by y (far to near)
+        beans.sort(key=lambda b: b.y)
+        self._beans = beans
+        # Tool detection: bright elongated thin object
+        gray = cv2.cvtColor(self._image, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
+        tcnt, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        best = None; best_score = 0
+        for c in tcnt:
+            a = cv2.contourArea(c)
+            if a < 100 or a > 3000: continue
+            rect = cv2.minAreaRect(c)
+            w, h = rect[1]
+            if min(w,h) == 0: continue
+            ar = max(w,h)/min(w,h)
+            if ar > 3 and a*ar > best_score:
+                best_score = a*ar
+                M = cv2.moments(c)
+                if M['m00'] > 0:
+                    cx, cy = M['m10']/M['m00'], M['m01']/M['m00']
+                    tip = max(c, key=lambda p: (p[0][0]-cx)**2+(p[0][1]-cy)**2
+                              if p[0][1] > cy else 0)
+                    best = ToolState(tip_x=tip[0][0]*0.3, tip_y=tip[0][1]*0.3,
+                                     tip_z=0, detected=True)
+        self._tool = best
 
-        # Detect beans
-        beans = self.bean_detector.detect(frame)
+    # ── Scale reading ──
+    def _read_scale(self):
+        if self.scale_ser is None: return None
+        try:
+            self.scale_ser.reset_input_buffer()
+            line = self.scale_ser.readline()
+            m = re.search(r'[+-]?\d+\.?\d*', line.decode('ascii', errors='ignore'))
+            if m:
+                v = float(m.group())
+                if 0 <= v <= 500: return v
+        except Exception:
+            pass
+        return None
 
-        # Detect tool tip
-        tool = self.tool_detector.detect(frame)
-
-        # Update world state
-        self.world.update(
-            beans=beans,
-            tool=tool,
-            raw_image=frame if self.get_parameter('publish_debug').value else None
-        )
-
-    # ========== Scale polling ==========
-    def scale_timer_callback(self):
-        """Poll scale at 10Hz."""
-        weight = self.scale_reader.read()
-        self.world.update(scale_weight=weight)
-
-    # ========== State publishing ==========
-    def publish_state(self):
-        """Publish world state at 20Hz."""
-        snap = self.world.snapshot()
-
-        # Publish bean detections
-        bean_msg = BeanDetections()
-        bean_msg.header.stamp = self.get_clock().now().to_msg()
-        bean_msg.header.frame_id = 'table'
-        for b in snap['beans']:
-            bd = BeanDetection()
-            bd.x = b.world_x
-            bd.y = b.world_y
-            bd.radius = b.radius_px
-            bd.confidence = b.confidence
-            bean_msg.beans.append(bd)
-        self.beans_pub.publish(bean_msg)
-
-        # Publish tool state
-        tool = snap['tool']
-        if tool is not None:
-            tool_msg = ToolState()
-            tool_msg.tip_x = tool.world_x
-            tool_msg.tip_y = tool.world_y
-            tool_msg.tip_z = tool.world_z
-            tool_msg.detected = True
-            self.tool_pub.publish(tool_msg)
-
-        # Publish scale weight
-        if snap['scale_weight'] is not None:
-            self.scale_pub.publish(Float32(data=snap['scale_weight']))
-
-        # Publish debug image
-        if self.get_parameter('publish_debug').value and snap.get('raw_image') is not None:
-            annotated = self.bean_detector.draw(snap['raw_image'], snap['beans'])
-            debug_msg = self.bridge.cv2_to_imgmsg(annotated, encoding='bgr8')
-            debug_msg.header.stamp = self.get_clock().now().to_msg()
-            self.debug_pub.publish(debug_msg)
+    # ── Timer: publish all ──
+    def _timer_cb(self):
+        now = self.get_clock().now().to_msg()
+        # Beans
+        bm = BeanDetections()
+        bm.header.stamp = now; bm.header.frame_id = 'table'
+        bm.beans = self._beans
+        self.beans_pub.publish(bm)
+        # Tool
+        if self._tool:
+            self._tool.header = bm.header
+            self.tool_pub.publish(self._tool)
+        # Scale
+        w = self._read_scale()
+        if w is not None:
+            self.scale_pub.publish(Float32(data=w))
+        # Debug
+        if self._image is not None:
+            vis = self._image.copy()
+            for b in self._beans:
+                cv2.circle(vis, (int(b.x/0.3), int(b.y/0.3)), int(b.radius), (0,255,0), 2)
+            self.debug_pub.publish(self.bridge.cv2_to_imgmsg(vis, 'bgr8'))
 
 
 def main():
     rclpy.init()
-    node = PerceptionNode()
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
-
+    rclpy.spin(PerceptionNode())
+    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

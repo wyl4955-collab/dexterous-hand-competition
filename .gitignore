@@ -1,37 +1,15 @@
-# ROS2 / Colcon
 build/
 install/
 log/
-
-# Python
 __pycache__/
 *.pyc
 *.pyo
+.eggs/
 *.egg-info/
-dist/
-
-# C++ build artifacts
-*.o
-*.obj
-*.a
-*.so
-
-# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
 *.log
 logs/
-
-# Sensitive
-*.pkl
-*.npz
-training_data/

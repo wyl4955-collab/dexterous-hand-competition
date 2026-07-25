@@ -1,21 +1,12 @@
 <?xml version="1.0"?>
-<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>rh56f2_driver</name>
   <version>0.1.0</version>
-  <description>ROS2 driver for Inspire RH56F2 dexterous hand (RS485 protocol)</description>
-  <maintainer email="team@competition.local">Competition Team</maintainer>
+  <description>Python ROS2 driver for RH56F2 hand via RS485</description>
+  <maintainer email="team@competition.local">Team</maintainer>
   <license>Apache-2.0</license>
-
-  <buildtool_depend>ament_cmake</buildtool_depend>
-
-  <depend>rclcpp</depend>
-  <depend>std_msgs</depend>
+  <depend>rclpy</depend>
   <depend>competition_interfaces</depend>
-
-  <test_depend>ament_lint_auto</test_depend>
-
-  <export>
-    <build_type>ament_cmake</build_type>
-  </export>
+  <depend>std_msgs</depend>
+  <export><build_type>ament_python</build_type></export>
 </package>

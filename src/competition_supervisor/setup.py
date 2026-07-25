@@ -3,4 +3,4 @@ setup(name='competition_supervisor', version='0.1.0', packages=['competition_sup
       data_files=[('share/competition_supervisor', ['package.xml'])],
       install_requires=['setuptools'], zip_safe=True,
       entry_points={'console_scripts': [
-          'supervisor_node = competition_supervisor.supervisor_node:main']})
+          'supervisor = competition_supervisor.supervisor:main']})
