@@ -85,10 +85,12 @@ dexterous_hand_competition/
 
 | 成员 | 主要职责 | 主要目录 |
 |---|---|---|
-| A | 机器人状态、手臂/身体运动、轨迹和工作区映射 | `common/robot_state.py`、`common/arm_controller.py`、`control/` |
-| B | 视觉检测、场景发布和相机桌面标定 | `vision/`、`config/vision.yaml`、`calibration/camera_table.yaml` |
-| C | 灵巧手、镊子姿态和镊子动作技能 | `common/hand_controller.py`、`skills/`、`config/hand.yaml` |
-| D | 状态机、安全、消息接口、构建、启动和最终集成 | `task/`、`common/safety_monitor.py`、`competition_interfaces/`、`launch/` |
+| A | 机器人状态、手臂运动、工作区映射和运动安全 | `common/robot_state.py`、`common/arm_controller.py`、`common/safety_monitor.py`、`control/` |
+| B | 视觉检测、相机桌面标定和视觉消息接口 | `vision/`、`competition_interfaces/`、`config/vision.yaml` |
+| C1 | 灵巧手底层控制、手势和镊子保持标定 | `common/hand_controller.py`、`config/hand.yaml`、`calibration/tweezer_tcp.yaml` |
+| C2 | 镊子高层技能、夹豆状态机、启动和轻量集成 | `skills/`、`task/`、`launch/`、`scripts/` |
+
+原D板块不再设置专人：运动安全交给A，视觉消息交给B，手部安全交给C1，executor、状态机、启动和日志框架交给C2。
 
 详细中文分工请阅读：
 
@@ -321,12 +323,12 @@ colcon test-result --verbose
 建议使用以下分支：
 
 ```text
-main             现场验证通过的稳定版本
-dev              每日集成版本
-feat/motion      成员A
-feat/vision      成员B
-feat/tweezers    成员C
-feat/system      成员D
+main                    现场验证通过的稳定版本
+dev                     每日集成版本
+feat/motion-safety      成员A
+feat/vision-interfaces  成员B
+feat/hand-control       成员C1
+feat/tweezer-task       成员C2
 ```
 
 规则：
@@ -346,4 +348,3 @@ feat/system      成员D
 [PROJECT_STATUS.md](PROJECT_STATUS.md)
 
 目前已经完成项目骨架、消息定义、dry-run控制抽象、视觉/状态机框架、模拟集成节点和基础测试。真实机器人SDK适配、相机数据采集、关键姿态、工作区、灵巧手和镊子TCP仍需要团队在实机上完成。
-
