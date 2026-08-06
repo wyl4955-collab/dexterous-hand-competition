@@ -1,0 +1,34 @@
+vision:
+  color_topic: /ob_camera_head/color/image_raw
+  depth_topic: /ob_camera_head/depth/image_raw
+  color_camera_info_topic: /ob_camera_head/color/camera_info
+
+  # TODO_REAL_ROBOT: replace after collecting real 1280x720 camera images.
+  source_roi:
+    x: 300
+    y: 180
+    width: 420
+    height: 360
+
+  # Initial soybean HSV guess only; tune under field lighting.
+  hsv_lower: [15, 60, 50]
+  hsv_upper: [45, 255, 255]
+  min_area_px: 20
+  max_area_px: 2500
+  min_circularity: 0.35
+  edge_margin_px: 20
+  morph_kernel: 3
+
+  # TODO_REAL_ROBOT: measured table position in metres.
+  target_center_m: [0.0, 0.0]
+
+calibration:
+  calibrated: false
+  image_width: 1280
+  image_height: 720
+  # Placeholder identity matrix. It is blocked by calibrated=false.
+  homography:
+    - [1.0, 0.0, 0.0]
+    - [0.0, 1.0, 0.0]
+    - [0.0, 0.0, 1.0]
+

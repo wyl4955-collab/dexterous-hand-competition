@@ -1,0 +1,21 @@
+calibrated: false
+finger_order:
+  - little
+  - ring
+  - middle
+  - index
+  - thumb_bend
+  - thumb_rotation
+
+# TODO_REAL_ROBOT: all empty arrays must be measured from the real hand.
+poses:
+  open: []
+  tweezers_pregrasp: []
+  tweezers_hold: []
+  tweezers_squeeze: []
+  tweezers_release: []
+  release_tool: []
+
+force_ratios: []
+speed_ratios: []
+

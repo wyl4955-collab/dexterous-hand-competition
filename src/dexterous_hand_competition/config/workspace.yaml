@@ -1,0 +1,17 @@
+calibrated: false
+
+# TODO_REAL_ROBOT: populate a 3x3 grid inside the source container.
+x_values_m: []
+y_values_m: []
+forbidden_edge_margin_m: 0.01
+points: []
+
+# Point format:
+# - grid_index: [0, 0]
+#   x_m: 0.0
+#   y_m: 0.0
+#   layers:
+#     hover: {}
+#     pick: {}
+#     lift: {}
+
