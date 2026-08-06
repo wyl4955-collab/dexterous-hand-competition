@@ -1,6 +1,0 @@
-string task_name
-float32 target_weight  # for powder weighing
-int32 bean_count       # for bean picking
----
-bool accepted
-string message

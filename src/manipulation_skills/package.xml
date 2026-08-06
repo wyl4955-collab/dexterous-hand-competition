@@ -1,2 +1,0 @@
-<?xml version="1.0"?>
-<package format="3"><name>manipulation_skills</name><version>0.1.0</version><description>Primitives: grip, pinch, tap, pour</description><maintainer email="team@competition.local">Team</maintainer><license>Apache-2.0</license><depend>rclpy</depend><depend>competition_interfaces</depend><export><build_type>ament_python</build_type></export></package>
