@@ -1,0 +1,13 @@
+calibrated: false
+date: null
+robot_pose_name: look_table
+image_size: [1280, 720]
+image_points_px: []
+table_points_m: []
+homography:
+  - [1.0, 0.0, 0.0]
+  - [0.0, 1.0, 0.0]
+  - [0.0, 0.0, 1.0]
+mean_error_m: null
+notes: TODO_REAL_ROBOT
+

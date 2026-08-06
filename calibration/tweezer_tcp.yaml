@@ -1,0 +1,10 @@
+calibrated: false
+date: null
+tool: 160mm_curved_medical_tweezers
+operation_hand: right
+tcp_offset_from_wrist_m: []
+hold_opening_mm: null
+squeeze_opening_mm: null
+pick_height_m: null
+notes: TODO_REAL_ROBOT
+

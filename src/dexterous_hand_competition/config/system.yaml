@@ -1,0 +1,25 @@
+system:
+  dry_run: true
+  operation_hand: right
+  task_time_limit_sec: 300.0
+  scene_timeout_sec: 0.5
+  feedback_timeout_sec: 0.5
+  state_default_timeout_sec: 10.0
+  max_pick_retries: 3
+  stop_new_pick_remaining_sec: 20.0
+
+deployment:
+  x86_address: 192.168.41.1
+  orin_address: 192.168.41.2
+  ros_domain_id: 0  # TODO_REAL_ROBOT: verify on both hosts
+
+topics:
+  arm_status: /arm/status
+  arm_command: /arm/cmd_pos
+  color_image: /ob_camera_head/color/image_raw
+  depth_image: /ob_camera_head/depth/image_raw
+  color_camera_info: /ob_camera_head/color/camera_info
+  scene: /bean_task/scene
+  task_state: /bean_task/state
+  safety_ok: /bean_task/safety_ok
+

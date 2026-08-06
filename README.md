@@ -1,5 +1,13 @@
 # Dexterous Hand Competition
 
+[中文夹豆专项说明](README_CN.md) | English
+
+> The existing multi-task packages are preserved. A new safety-first,
+> dry-run-by-default bean-picking scaffold is available at
+> `src/dexterous_hand_competition/`, with the Chinese team guide at
+> `docs/TEAM_DIVISION_CN.md`. It does not command the real robot until the
+> Tianyi SDK adapters and calibration files are verified.
+
 2026 世界人形机器人运动会 — 灵巧手专项赛（粉末称量 + 镊子夹豆）
 
 ## 架构

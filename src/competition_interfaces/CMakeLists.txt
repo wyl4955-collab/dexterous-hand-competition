@@ -6,6 +6,7 @@ find_package(rosidl_cmake REQUIRED)
 find_package(rosidl_generator_c REQUIRED)
 find_package(rosidl_generator_cpp REQUIRED)
 find_package(rosidl_generator_py REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -13,11 +14,14 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/HandCommand.msg"
   "msg/BeanDetection.msg"
   "msg/BeanDetections.msg"
+  "msg/BeanTarget.msg"
+  "msg/Scene.msg"
+  "msg/TaskState.msg"
   "msg/ToolState.msg"
   "msg/TaskStatus.msg"
   "srv/HandCalibrate.srv"
   "srv/RunTask.srv"
-  DEPENDENCIES std_msgs
+  DEPENDENCIES geometry_msgs std_msgs
 )
 
 ament_export_dependencies(rosidl_generator_c rosidl_generator_cpp rosidl_generator_py)

@@ -1,0 +1,22 @@
+calibrated: false
+
+# TODO_REAL_ROBOT: record every pose through low-speed supervised teaching.
+# Joint IDs and radians must match the verified SDK.
+joint_limits: {}
+
+poses:
+  ready: {}
+  arms_out: {}
+  look_table: {}
+  tweezer_pregrasp: {}
+  tweezer_grasp: {}
+  source_hover: {}
+  destination_hover: {}
+  safe_finish: {}
+
+motion:
+  control_hz: 50.0
+  default_duration_sec: 3.0
+  default_timeout_sec: 10.0
+  max_step_rad: 0.01  # TODO_REAL_ROBOT: verify
+
