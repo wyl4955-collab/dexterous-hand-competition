@@ -25,6 +25,10 @@ class MockSceneNode(Node):
         scene.source_center.y = -0.20
         scene.target_center.x = 0.45
         scene.target_center.y = 0.20
+        scene.tweezer_position.x = 0.50
+        scene.tweezer_position.y = 0.00
+        scene.tweezer_position.z = 0.0
+        scene.tweezer_angle = 0.0
         scene.message = 'synthetic dry-run scene'
 
         target = BeanTarget()
