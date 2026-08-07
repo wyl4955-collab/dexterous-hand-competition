@@ -1,0 +1,21 @@
+dry_run: true
+real_command_enabled: false
+
+topics:
+  arm_status: /arm/status
+  waist_status: /waist/status
+  leg_status: /leg/status
+  arm_command: /arm/cmd_pos
+  waist_command: /waist/cmd_pos
+  leg_command: /leg/cmd_pos
+
+# TODO_REAL_ROBOT: add per-joint spd_rad_s and cur_a only after supervised,
+# low-speed calibration on the robot x86. Never guess these values. Set
+# real_command_enabled to true manually only after every safety check passes.
+joint_profiles: {}
+
+# Verified entry format:
+# joint_profiles:
+#   "<joint_id>":
+#     spd_rad_s: <verified positive value>
+#     cur_a: <verified positive value>

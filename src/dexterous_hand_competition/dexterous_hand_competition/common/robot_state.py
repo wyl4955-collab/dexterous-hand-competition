@@ -1,10 +1,7 @@
-"""Thread-safe robot feedback cache.
+"""Thread-safe robot feedback cache."""
 
-TODO_REAL_ROBOT: subscribe to verified Tianyi SDK status messages and call
-``update_joint`` for every joint sample. Do not guess the SDK message type.
-"""
-
-from dataclasses import dataclass
+from collections.abc import Iterable
+from dataclasses import dataclass, replace
 import threading
 import time
 
@@ -25,10 +22,20 @@ class RobotState:
         self._joints: dict[int, JointSample] = {}
 
     def update_joint(self, joint_id: int, sample: JointSample):
-        if sample.stamp_sec <= 0.0:
-            sample.stamp_sec = time.monotonic()
+        stamp_sec = sample.stamp_sec
+        if stamp_sec <= 0.0:
+            stamp_sec = time.monotonic()
         with self._lock:
-            self._joints[int(joint_id)] = sample
+            self._joints[int(joint_id)] = replace(
+                sample,
+                stamp_sec=stamp_sec,
+            )
+
+    def get_joint_sample(self, joint_id: int) -> JointSample | None:
+        """Return a copy of one joint sample, if feedback is available."""
+        with self._lock:
+            sample = self._joints.get(int(joint_id))
+            return None if sample is None else replace(sample)
 
     def get_joint_position(self, joint_id: int) -> float | None:
         with self._lock:
@@ -51,11 +58,41 @@ class RobotState:
                 for sample in self._joints.values()
             )
 
+    def feedback_is_fresh_for(
+        self,
+        joint_ids: Iterable[int],
+        max_age_sec: float = 0.5,
+    ) -> bool:
+        """Return whether every requested joint has fresh feedback."""
+        requested = tuple(int(joint_id) for joint_id in joint_ids)
+        if not requested:
+            return False
+
+        now = time.monotonic()
+        with self._lock:
+            return all(
+                joint_id in self._joints
+                and now - self._joints[joint_id].stamp_sec <= max_age_sec
+                for joint_id in requested
+            )
+
     def any_joint_error(self) -> bool:
         with self._lock:
-            return any(sample.error_code != 0 for sample in self._joints.values())
+            return any(
+                sample.error_code != 0
+                for sample in self._joints.values()
+            )
+
+    def any_joint_error_for(self, joint_ids: Iterable[int]) -> bool:
+        """Return whether any requested joint reports a non-zero error."""
+        requested = tuple(int(joint_id) for joint_id in joint_ids)
+        with self._lock:
+            return any(
+                joint_id in self._joints
+                and self._joints[joint_id].error_code != 0
+                for joint_id in requested
+            )
 
     def clear(self):
         with self._lock:
             self._joints.clear()
-
