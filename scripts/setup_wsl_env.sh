@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run this script ONCE inside WSL Ubuntu 22.04 to set up the full environment.
 # Usage: cd ~/dexterous-hand-competition && bash scripts/setup_wsl_env.sh
-set -euo pipefail
+set -eo pipefail
 
 echo '=== Installing ROS2 Humble ==='
 sudo apt update -qq
