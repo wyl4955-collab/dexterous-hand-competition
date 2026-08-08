@@ -10,6 +10,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/BeanTarget.msg"
   "msg/Scene.msg"
   "msg/TaskState.msg"
+  "msg/PowderScene.msg"
+  "msg/ScaleReading.msg"
   DEPENDENCIES geometry_msgs std_msgs
 )
 
