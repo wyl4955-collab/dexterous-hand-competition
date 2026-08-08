@@ -1,0 +1,10 @@
+std_msgs/Header header
+bool valid
+bool calibrated
+geometry_msgs/Point powder_container_center
+geometry_msgs/Point scale_center
+string[] spoon_categories
+float32[] spoon_x_m
+float32[] spoon_y_m
+float32[] spoon_angle_rad
+string message

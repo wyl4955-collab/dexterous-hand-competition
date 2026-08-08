@@ -32,6 +32,10 @@ setup(
             'dexterous_hand_competition.common.safety_monitor:main',
             'mock_scene_node = '
             'dexterous_hand_competition.tools.mock_scene_node:main',
+            'powder_scene_node = '
+            'dexterous_hand_competition.vision.powder_scene_node:main',
+            'mock_powder_scene_node = '
+            'dexterous_hand_competition.tools.mock_powder_scene_node:main',
         ],
     },
 )

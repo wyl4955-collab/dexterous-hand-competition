@@ -1,7 +1,12 @@
-"""Traditional OpenCV soybean detector for a fixed source-container ROI."""
+"""Traditional OpenCV soybean detector for a fixed source-container ROI.
+
+Includes lightweight multi-frame tracking so that ``target_id`` is stable
+across frames and ``failure_count`` can be maintained by the task layer.
+"""
 
 from dataclasses import dataclass
 import math
+import time
 
 import cv2
 import numpy as np
@@ -21,11 +26,60 @@ class Detection:
     nearest_neighbor_px: float
 
 
+# ---------------------------------------------------------------------------
+# Lightweight bipartite matching (greedy nearest-neighbour).
+# Sufficient for the ~5-30 beans expected on the table.
+# ---------------------------------------------------------------------------
+
+def _match_detections(
+    current: list[dict],
+    previous: list[dict],
+    max_distance_m: float = 0.03,
+) -> list[int]:
+    """Greedy assignment of current→previous based on table-coordinate distance.
+
+    Returns a list the same length as *current*.  Entry *i* is the index in
+    *previous* that was matched, or -1 for a new bean.
+    """
+    used = [False] * len(previous)
+    assignments = [-1] * len(current)
+
+    # Build all pairs sorted by distance.
+    pairs = []
+    for ci, cur in enumerate(current):
+        for pi, prev in enumerate(previous):
+            dx = cur['x_m'] - prev['x_m']
+            dy = cur['y_m'] - prev['y_m']
+            d = math.hypot(dx, dy)
+            if d <= max_distance_m:
+                pairs.append((d, ci, pi))
+
+    pairs.sort(key=lambda p: p[0])
+    for _, ci, pi in pairs:
+        if assignments[ci] == -1 and not used[pi]:
+            assignments[ci] = pi
+            used[pi] = True
+
+    return assignments
+
+
+# ---------------------------------------------------------------------------
+# BeanDetector
+# ---------------------------------------------------------------------------
+
 class BeanDetector:
     def __init__(self, config: dict, calibration: TableCalibration):
         self.config = config
         self.calibration = calibration
 
+        # Tracking state
+        self._prev_detections: list[dict] = []
+        self._prev_stamp = 0.0
+        self._next_id = 1
+        self._failure_counts: dict[int, int] = {}
+        self._max_track_age_sec = 2.0
+
+    # -- ROI ----------------------------------------------------------------
     def _roi(self, image: np.ndarray):
         roi = self.config['source_roi']
         x = int(roi['x'])
@@ -38,7 +92,25 @@ class BeanDetector:
             raise ValueError('source ROI is outside the image')
         return image[y:y + height, x:x + width], x, y
 
-    def detect(self, image_bgr: np.ndarray) -> tuple[list[Detection], np.ndarray]:
+    # -- detection ----------------------------------------------------------
+    def detect(
+        self,
+        image_bgr: np.ndarray,
+        stamp_sec: float | None = None,
+    ) -> tuple[list[Detection], np.ndarray]:
+        """Run detection + tracking on one frame.
+
+        Args:
+            image_bgr: colour image.
+            stamp_sec: monotonic timestamp for tracking age-out.
+                Defaults to ``time.monotonic()``.
+
+        Returns:
+            (detections, debug_image)
+        """
+        if stamp_sec is None:
+            stamp_sec = time.monotonic()
+
         debug = image_bgr.copy()
         roi_image, offset_x, offset_y = self._roi(image_bgr)
         hsv = cv2.cvtColor(roi_image, cv2.COLOR_BGR2HSV)
@@ -94,34 +166,63 @@ class BeanDetector:
             if table is None:
                 continue
             confidence = min(1.0, max(0.0, circularity))
-            candidates.append((u, v, table[0], table[1], confidence, edge_distance))
+            candidates.append(
+                {
+                    'u': u,
+                    'v': v,
+                    'x_m': float(table[0]),
+                    'y_m': float(table[1]),
+                    'confidence': confidence,
+                    'edge_distance_px': edge_distance,
+                }
+            )
 
-        detections = []
-        for index, candidate in enumerate(candidates):
-            u, v, x_m, y_m, confidence, edge_distance = candidate
-            distances = [
-                math.hypot(u - other[0], v - other[1])
-                for other_index, other in enumerate(candidates)
-                if other_index != index
-            ]
-            nearest = min(distances) if distances else 9999.0
+        # -- multi-frame association ----------------------------------------
+        # Age out old tracks.
+        if stamp_sec - self._prev_stamp > self._max_track_age_sec:
+            self._prev_detections.clear()
+            self._next_id = 1
+
+        assignments = _match_detections(candidates, self._prev_detections)
+
+        detections: list[Detection] = []
+        for ci, candidate in enumerate(candidates):
+            pi = assignments[ci]
+            if pi >= 0:
+                tid = self._prev_detections[pi]['id']
+            else:
+                tid = self._next_id
+                self._next_id += 1
+
+            nearest = 9999.0
+            for cj, other in enumerate(candidates):
+                if cj == ci:
+                    continue
+                d = math.hypot(
+                    candidate['u'] - other['u'],
+                    candidate['v'] - other['v'],
+                )
+                if d < nearest:
+                    nearest = d
+
             detections.append(
                 Detection(
-                    target_id=index + 1,
-                    u=u,
-                    v=v,
-                    x_m=x_m,
-                    y_m=y_m,
-                    confidence=confidence,
-                    edge_distance_px=edge_distance,
+                    target_id=tid,
+                    u=candidate['u'],
+                    v=candidate['v'],
+                    x_m=candidate['x_m'],
+                    y_m=candidate['y_m'],
+                    confidence=candidate['confidence'],
+                    edge_distance_px=candidate['edge_distance_px'],
                     nearest_neighbor_px=nearest,
                 )
             )
-            cv2.circle(debug, (int(u), int(v)), 8, (0, 255, 0), 2)
+
+            cv2.circle(debug, (int(candidate['u']), int(candidate['v'])), 8, (0, 255, 0), 2)
             cv2.putText(
                 debug,
-                str(index + 1),
-                (int(u) + 8, int(v) - 8),
+                str(tid),
+                (int(candidate['u']) + 8, int(candidate['v']) - 8),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.5,
                 (0, 255, 0),
@@ -137,5 +238,38 @@ class BeanDetector:
             (255, 0, 0),
             2,
         )
+
+        # Store for next frame.
+        self._prev_detections = [
+            {
+                'id': d.target_id,
+                'x_m': d.x_m,
+                'y_m': d.y_m,
+            }
+            for d in detections
+        ]
+        self._prev_stamp = stamp_sec
+
         return detections, debug
 
+    # -- failure tracking ---------------------------------------------------
+    def record_failure(self, target_id: int):
+        """Called by the task layer when a pick attempt fails."""
+        self._failure_counts[target_id] = (
+            self._failure_counts.get(target_id, 0) + 1
+        )
+
+    def record_success(self, target_id: int):
+        """Called when a pick succeeds — resets the counter for that ID."""
+        self._failure_counts.pop(target_id, None)
+
+    def reset_tracking(self):
+        """Forget all tracked IDs (e.g. when the task resets)."""
+        self._prev_detections.clear()
+        self._next_id = 1
+        self._failure_counts.clear()
+        self._prev_stamp = 0.0
+
+    def get_failure_map(self) -> dict[int, int]:
+        """Return a copy of {target_id: failure_count}."""
+        return dict(self._failure_counts)

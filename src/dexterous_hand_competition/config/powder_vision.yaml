@@ -1,0 +1,71 @@
+color_topic: /ob_camera_head/color/image_raw
+depth_topic: /ob_camera_head/depth/image_raw
+
+# -------------------------------------------------------------------
+# Powder container — bowl/jar holding the powder.
+# Reuses container_detector.py with HSV parameters below.
+# -------------------------------------------------------------------
+powder_container:
+  hsv_lower: [0, 0, 30]
+  hsv_upper: [180, 60, 255]
+  min_area_px: 5000
+  morph_kernel: 5
+  # TODO_REAL_ROBOT: measured table coordinates of powder container.
+  fallback_m: [0.35, -0.20]
+
+# -------------------------------------------------------------------
+# Electronic scale — white base, LCD with black seven-segment digits.
+# -------------------------------------------------------------------
+scale:
+  # LCD display ROI in the image (pixels).
+  roi:
+    x: 600
+    y: 200
+    width: 120
+    height: 60
+  # Binary threshold for digit extraction (0 = auto Otsu).
+  binary_threshold: 0
+  min_digit_area_px: 50
+  max_digit_area_px: 800
+  min_segment_fill: 0.25
+  stable_frames: 3
+  # For scale body detection (white surface).
+  hsv_lower: [0, 0, 180]
+  hsv_upper: [180, 30, 255]
+  # TODO_REAL_ROBOT: calibrated scale centre position.
+  fallback_m: [0.45, 0.0]
+
+# -------------------------------------------------------------------
+# Spoons — metallic, various sizes, placed in a fixed zone.
+# -------------------------------------------------------------------
+spoon:
+  roi:
+    x: 800
+    y: 300
+    width: 400
+    height: 400
+  gray_threshold: 160
+  morph_kernel: 3
+  min_area_px: 500
+  max_area_px: 15000
+  size_thresholds:
+    large_px: 3000
+    medium_px: 1000
+  # TODO_REAL_ROBOT: calibrated fallback spoon positions.
+  fallback_spoons:
+    - x_m: 0.55
+      y_m: 0.25
+      angle_rad: 0.0
+      size: "large"
+
+# -------------------------------------------------------------------
+# Calibration.
+# -------------------------------------------------------------------
+calibration:
+  calibrated: false
+  image_width: 1280
+  image_height: 720
+  homography:
+    - [1.0, 0.0, 0.0]
+    - [0.0, 1.0, 0.0]
+    - [0.0, 0.0, 1.0]

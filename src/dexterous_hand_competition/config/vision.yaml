@@ -2,6 +2,7 @@ vision:
   color_topic: /ob_camera_head/color/image_raw
   depth_topic: /ob_camera_head/depth/image_raw
   color_camera_info_topic: /ob_camera_head/color/camera_info
+  depth_to_color_topic: /ob_camera_head/depth_to_color
 
   # TODO_REAL_ROBOT: replace after collecting real 1280x720 camera images.
   source_roi:
@@ -19,9 +20,57 @@ vision:
   edge_margin_px: 20
   morph_kernel: 3
 
-  # TODO_REAL_ROBOT: measured table position in metres.
-  target_center_m: [0.0, 0.0]
+  # TODO_REAL_ROBOT: measured table height in millimetres for depth validation.
+  table_height_mm: 750
 
+# -------------------------------------------------------------------
+# Container detection — source and target bowls on the table.
+# -------------------------------------------------------------------
+container:
+  morph_kernel: 5
+
+  # TODO_REAL_ROBOT: calibrate HSV and min area on real images.
+  source:
+    hsv_lower: [0, 30, 40]
+    hsv_upper: [30, 255, 255]
+    min_area_px: 5000
+    fallback_m: [0.42, -0.20]
+
+  target:
+    hsv_lower: [100, 30, 40]
+    hsv_upper: [140, 255, 255]
+    min_area_px: 5000
+    fallback_m: [0.42, 0.20]
+
+# -------------------------------------------------------------------
+# Tweezer detection — 160 mm metallic curved medical tweezers.
+# -------------------------------------------------------------------
+tweezer:
+  roi:
+    x: 500
+    y: 350
+    width: 300
+    height: 370
+  gray_threshold: 180
+  min_area_px: 500
+  max_area_px: 8000
+  min_elongation: 3.0
+  morph_kernel: 3
+  # TODO_REAL_ROBOT: calibrated tweezer placement position + angle.
+  fallback_m: [0.50, 0.00]
+  fallback_angle_rad: 0.0
+
+# -------------------------------------------------------------------
+# Target selection — scoring weights for bean pickability.
+# -------------------------------------------------------------------
+selection:
+  workspace_cx_m: 0.42
+  workspace_cy_m: 0.0
+  min_score: 0.1
+
+# -------------------------------------------------------------------
+# Calibration (mirrors calibration/camera_table.yaml structure).
+# -------------------------------------------------------------------
 calibration:
   calibrated: false
   image_width: 1280
@@ -31,4 +80,3 @@ calibration:
     - [1.0, 0.0, 0.0]
     - [0.0, 1.0, 0.0]
     - [0.0, 0.0, 1.0]
-
