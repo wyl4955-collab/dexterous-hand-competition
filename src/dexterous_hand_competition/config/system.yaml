@@ -22,4 +22,7 @@ topics:
   scene: /bean_task/scene
   task_state: /bean_task/state
   safety_ok: /bean_task/safety_ok
-
+  vision_health: /bean_task/vision_health
+  active_target_id: /bean_task/active_target_id
+  pick_confirmed_id: /bean_task/pick_confirmed_id
+  drop_confirmed_id: /bean_task/drop_confirmed_id

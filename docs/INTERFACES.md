@@ -14,6 +14,17 @@
 - `/bean_task/debug_image` — `sensor_msgs/msg/Image`
 - `/bean_task/vision_health` — `std_msgs/msg/Bool`
 
+## C2 target verification topics
+
+- `/bean_task/active_target_id` — `std_msgs/msg/UInt32` (C2 publishes)
+- `/bean_task/pick_confirmed_id` — `std_msgs/msg/UInt32` (vision publishes)
+- `/bean_task/drop_confirmed_id` — `std_msgs/msg/UInt32` (vision publishes)
+
+Target ID `0` means no active target. A confirmation is accepted only when
+its ID matches the active target and it arrives after the corresponding
+pick/drop action. These additions require B and C2 to review the contract
+together before real integration.
+
 ## Task topics and services
 
 - `/bean_task/state` — `competition_interfaces/msg/TaskState`
@@ -43,4 +54,3 @@ When safety becomes false:
 5. Wait for manual inspection and reset.
 
 Do not automatically move to neutral and do not automatically release the tool.
-
