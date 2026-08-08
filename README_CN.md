@@ -4,7 +4,7 @@
 
 这是一个面向天轶 Pro 2.0 人形机器人的 ROS2 Humble 工作区，用于开发世界人形机器人运动会“镊子夹豆”自主任务。
 
-C2 开发者请先阅读 [`docs/C2_GUIDE_CN.md`](docs/C2_GUIDE_CN.md)，其中包含状态机、mock 联调、跨成员接口和实机启用顺序。
+C2 开发者请先阅读 [`docs/C2_RUNBOOK_CN.md`](docs/C2_RUNBOOK_CN.md) 完成构建和模拟运行，再阅读 [`docs/C2_GUIDE_CN.md`](docs/C2_GUIDE_CN.md) 了解状态机、跨成员接口和实机启用顺序。
 
 ## 安全警告
 

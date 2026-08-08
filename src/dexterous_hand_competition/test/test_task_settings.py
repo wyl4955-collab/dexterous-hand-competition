@@ -21,3 +21,19 @@ def test_settings_reject_unknown_state():
         BeanTaskSettings.from_mapping({
             'state_timeouts_sec': {'NOT_A_STATE': 1.0}
         })
+
+
+def test_settings_parse_string_booleans_safely():
+    settings = BeanTaskSettings.from_mapping({
+        'dry_run': 'false',
+        'auto_grasp_tweezer': 'true',
+        'auto_release_tweezer': 'off',
+    })
+    assert settings.dry_run is False
+    assert settings.auto_grasp_tweezer is True
+    assert settings.auto_release_tweezer is False
+
+
+def test_settings_reject_zero_empty_scene_confirmations():
+    with pytest.raises(ValueError, match='empty_scene_confirmations'):
+        BeanTaskSettings.from_mapping({'empty_scene_confirmations': 0})

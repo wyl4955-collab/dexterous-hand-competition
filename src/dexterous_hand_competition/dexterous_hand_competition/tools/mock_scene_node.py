@@ -14,7 +14,7 @@ class MockSceneNode(Node):
         super().__init__('mock_scene_node')
         self.declare_parameter('bean_count', 3)
         self.declare_parameter('confirmation_delay_sec', 0.25)
-        self.bean_count = max(1, int(self.get_parameter('bean_count').value))
+        self.bean_count = max(0, int(self.get_parameter('bean_count').value))
         self.confirmation_delay_sec = max(
             0.0,
             float(self.get_parameter('confirmation_delay_sec').value),
@@ -44,10 +44,11 @@ class MockSceneNode(Node):
 
         self._state_name = 'WAIT_START'
         self._state_seen_sec = time.monotonic()
+        self._state_generation = 0
         self._active_target_id = 0
         self._picked: set[int] = set()
         self._dropped: set[int] = set()
-        self._confirmation_keys: set[tuple[str, int]] = set()
+        self._confirmation_keys: set[tuple[int, str, int]] = set()
         self.create_timer(0.1, self._publish)
         self.get_logger().warning(
             'Synthetic C2 scene/confirmations active; never use on hardware'
@@ -57,6 +58,12 @@ class MockSceneNode(Node):
         if message.state_name != self._state_name:
             self._state_name = message.state_name
             self._state_seen_sec = time.monotonic()
+            self._state_generation += 1
+            if self._state_name == 'CHECK_SYSTEM':
+                self._active_target_id = 0
+                self._picked.clear()
+                self._dropped.clear()
+                self._confirmation_keys.clear()
 
     def _target_callback(self, message: UInt32):
         self._active_target_id = int(message.data)
@@ -75,7 +82,7 @@ class MockSceneNode(Node):
             < self.confirmation_delay_sec
         ):
             return
-        key = (self._state_name, target_id)
+        key = (self._state_generation, self._state_name, target_id)
         if key in self._confirmation_keys:
             return
 

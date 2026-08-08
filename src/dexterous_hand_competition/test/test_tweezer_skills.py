@@ -87,3 +87,11 @@ def test_missing_tweezer_verifier_is_not_assumed_successful():
     result = skills.ensure_tweezer_held()
     assert not result.ok
     assert result.code == ResultCode.ADAPTER_MISSING
+
+
+def test_missing_candidate_is_rejected_without_calling_adapter():
+    skills, arm, _ = build_skills()
+    result = skills.move_hover(None)
+    assert not result.ok
+    assert result.code == ResultCode.VISION_INVALID
+    assert arm.calls == []

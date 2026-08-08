@@ -4,6 +4,8 @@ bean_task:
   time_limit_sec: 300.0
   target_count: 0  # 0 means continue until time/no beans.
   scene_timeout_sec: 0.5
+  # Require separate empty frames so one missed detection cannot end the run.
+  empty_scene_confirmations: 3
 
   # Target selection and failure recovery.
   max_pick_retries: 3

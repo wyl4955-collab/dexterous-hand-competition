@@ -56,6 +56,10 @@ class BeanTaskNode(Node):
             'scene_timeout_sec', configured.scene_timeout_sec
         )
         self.declare_parameter(
+            'empty_scene_confirmations',
+            configured.empty_scene_confirmations,
+        )
+        self.declare_parameter(
             'auto_grasp_tweezer', configured.auto_grasp_tweezer
         )
         self.declare_parameter(
@@ -70,6 +74,9 @@ class BeanTaskNode(Node):
             target_count=int(self.get_parameter('target_count').value),
             scene_timeout_sec=float(
                 self.get_parameter('scene_timeout_sec').value
+            ),
+            empty_scene_confirmations=int(
+                self.get_parameter('empty_scene_confirmations').value
             ),
             auto_grasp_tweezer=bool(
                 self.get_parameter('auto_grasp_tweezer').value
@@ -90,6 +97,9 @@ class BeanTaskNode(Node):
         self.beans_confirmed = 0
         self.latest_scene: Scene | None = None
         self.latest_scene_received_sec = 0.0
+        self.latest_scene_sequence = 0
+        self.last_empty_scene_sequence = -1
+        self.empty_scene_count = 0
         self.safety_ok = self.settings.dry_run
         self.vision_ok = self.settings.dry_run
         self.stop_requested = False
@@ -223,6 +233,7 @@ class BeanTaskNode(Node):
         with self._lock:
             self.latest_scene = message
             self.latest_scene_received_sec = time.monotonic()
+            self.latest_scene_sequence += 1
 
     def _safety_callback(self, message: Bool):
         should_lock = False
@@ -295,6 +306,10 @@ class BeanTaskNode(Node):
             self.pick_confirmation = (0, 0.0)
             self.drop_confirmation = (0, 0.0)
             self.selection_not_before_sec = 0.0
+            self.latest_scene = None
+            self.latest_scene_received_sec = 0.0
+            self.last_empty_scene_sequence = -1
+            self.empty_scene_count = 0
             self.targets.reset()
         self._transition(BeanTaskState.CHECK_SYSTEM, 'start service accepted')
         response.success = True
@@ -351,7 +366,16 @@ class BeanTaskNode(Node):
             self.fsm.reset()
             self.stop_requested = False
             self.task_started_sec = 0.0
+            self.beans_confirmed = 0
             self.current_target = None
+            self.pick_confirmation = (0, 0.0)
+            self.drop_confirmation = (0, 0.0)
+            self.selection_not_before_sec = 0.0
+            self.latest_scene = None
+            self.latest_scene_received_sec = 0.0
+            self.last_empty_scene_sequence = -1
+            self.empty_scene_count = 0
+            self._action_in_progress = False
             self.last_event = 'manual reset complete'
             self.targets.reset()
         self._publish_active_target()
@@ -471,12 +495,27 @@ class BeanTaskNode(Node):
         if self.skills is None:
             self._lock_error('skill adapter is unavailable')
             return
-        result: ActionResult = action()
+        try:
+            result = action()
+        except Exception as exc:
+            with self._lock:
+                still_expected = self.fsm.state == expected_state
+            if still_expected:
+                self._lock_error(
+                    f'{label} raised {type(exc).__name__}: {exc}'
+                )
+            return
         with self._lock:
             if self.fsm.state != expected_state:
                 return
             stopped = self.stop_requested
             safe = self.safety_ok
+        if not isinstance(result, ActionResult):
+            self._lock_error(
+                f'{label} returned {type(result).__name__}, '
+                'expected ActionResult'
+            )
+            return
         if result.ok:
             self._transition(success_state, f'{label}: {result.message}')
             return
@@ -596,12 +635,35 @@ class BeanTaskNode(Node):
                 return
             with self._lock:
                 scene = self.latest_scene
-            if scene is None or not scene.valid or not scene.calibrated:
+                scene_sequence = self.latest_scene_sequence
+            if scene is None:
+                return
+            if not scene.valid or not scene.calibrated:
+                with self._lock:
+                    self.empty_scene_count = 0
+                    self.last_empty_scene_sequence = scene_sequence
                 return
             candidates = self._to_candidates(scene)
             if not candidates:
-                self._normal_finish('no beans remain', allow_tool_return=True)
-            elif (
+                with self._lock:
+                    if scene_sequence != self.last_empty_scene_sequence:
+                        self.last_empty_scene_sequence = scene_sequence
+                        self.empty_scene_count += 1
+                    empty_scene_count = self.empty_scene_count
+                if (
+                    empty_scene_count
+                    >= self.settings.empty_scene_confirmations
+                ):
+                    self._normal_finish(
+                        f'no beans remain after {empty_scene_count} '
+                        'independent scene confirmations',
+                        allow_tool_return=True,
+                    )
+                return
+            with self._lock:
+                self.empty_scene_count = 0
+                self.last_empty_scene_sequence = scene_sequence
+            if (
                 self._remaining()
                 <= self.settings.stop_new_pick_remaining_sec
             ):

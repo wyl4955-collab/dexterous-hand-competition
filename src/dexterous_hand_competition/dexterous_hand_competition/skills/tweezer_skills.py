@@ -166,19 +166,27 @@ class TweezerSkills:
         )
 
     @staticmethod
-    def _valid_candidate(candidate: BeanCandidate) -> bool:
-        return all(
-            math.isfinite(float(value))
-            for value in (
-                candidate.table_x_m,
-                candidate.table_y_m,
-                candidate.confidence,
+    def _valid_candidate(candidate: BeanCandidate | None) -> bool:
+        if (
+            not isinstance(candidate, BeanCandidate)
+            or candidate.target_id <= 0
+        ):
+            return False
+        try:
+            return all(
+                math.isfinite(float(value))
+                for value in (
+                    candidate.table_x_m,
+                    candidate.table_y_m,
+                    candidate.confidence,
+                )
             )
-        )
+        except (TypeError, ValueError):
+            return False
 
     def move_to_bean(
         self,
-        candidate: BeanCandidate,
+        candidate: BeanCandidate | None,
         layer: str,
         duration_sec: float | None = None,
     ) -> ActionResult:
@@ -186,6 +194,7 @@ class TweezerSkills:
             return ActionResult.failure(
                 ResultCode.VISION_INVALID, 'bean table position is invalid'
             )
+        assert candidate is not None
         if self.workspace_mapper is None:
             return ActionResult.failure(
                 ResultCode.ADAPTER_MISSING, 'workspace mapper is not connected'
