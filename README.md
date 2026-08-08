@@ -4,6 +4,8 @@
 
 ROS2 Humble workspace for the Tianyi Pro 2.0 autonomous tweezer bean-picking task.
 
+The C2 implementation and integration workflow are documented in [`docs/C2_GUIDE_CN.md`](docs/C2_GUIDE_CN.md).
+
 ## Safety first
 
 This repository starts in `dry_run` mode and does **not** contain verified joint poses, hand ratios, robot limits, or SDK message adapters. Never command the real robot until all values marked `TODO_REAL_ROBOT` have been verified at low speed with two people present and one person dedicated to the emergency stop.

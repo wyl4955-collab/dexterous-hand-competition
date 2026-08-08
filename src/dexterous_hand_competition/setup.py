@@ -7,7 +7,7 @@ package_name = 'dexterous_hand_competition'
 
 setup(
     name=package_name,
-    version='0.1.0',
+    version='0.2.0',
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
@@ -20,9 +20,8 @@ setup(
     zip_safe=True,
     maintainer='Jinggong Zhiheng Team',
     maintainer_email='team@example.com',
-    description='Autonomous tweezer bean-picking competition scaffold.',
+    description='Safety-first autonomous tweezer bean-picking task engine.',
     license='Apache-2.0',
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'bean_scene_node = '

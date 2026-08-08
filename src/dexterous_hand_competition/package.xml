@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>dexterous_hand_competition</name>
-  <version>0.1.0</version>
-  <description>Safe, modular ROS2 scaffold for autonomous tweezer bean picking.</description>
+  <version>0.2.0</version>
+  <description>Safe ROS2 task engine for autonomous tweezer bean picking.</description>
   <maintainer email="team@example.com">Jinggong Zhiheng Team</maintainer>
   <license>Apache-2.0</license>
 

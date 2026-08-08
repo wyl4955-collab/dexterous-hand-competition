@@ -1,0 +1,43 @@
+bean_task:
+  # Safety default: real SDK adapters are not connected by C2.
+  dry_run: true
+  time_limit_sec: 300.0
+  target_count: 0  # 0 means continue until time/no beans.
+  scene_timeout_sec: 0.5
+  # Require separate empty frames so one missed detection cannot end the run.
+  empty_scene_confirmations: 3
+
+  # Target selection and failure recovery.
+  max_pick_retries: 3
+  blacklist_ttl_sec: 20.0
+  min_target_confidence: 0.25
+  stop_new_pick_remaining_sec: 20.0
+  retry_wait_sec: 0.5
+
+  # Keep false for M1 (manually installed tweezers). Enable only after M3
+  # pickup/return poses and C1 holding feedback are calibrated on hardware.
+  auto_grasp_tweezer: false
+  auto_release_tweezer: false
+
+  tick_period_sec: 0.1
+  state_publish_period_sec: 0.2
+
+  state_timeouts_sec:
+    CHECK_SYSTEM: 5.0
+    GRASP_TWEEZER: 20.0
+    VERIFY_TWEEZER: 5.0
+    WAIT_SCENE: 10.0
+    SELECT_BEAN: 2.0
+    MOVE_HOVER: 12.0
+    VISUAL_REFINE: 5.0
+    DESCEND: 10.0
+    SQUEEZE: 5.0
+    LIFT: 10.0
+    VERIFY_PICK: 3.0
+    RECOVER_PICK: 12.0
+    MOVE_TARGET: 12.0
+    RELEASE_BEAN: 5.0
+    VERIFY_DROP: 3.0
+    RECOVER_DROP: 5.0
+    RETURN_TWEEZER: 15.0
+    SAFE_FINISH: 10.0
