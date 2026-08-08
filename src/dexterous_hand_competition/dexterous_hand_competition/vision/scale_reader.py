@@ -120,8 +120,8 @@ class ScaleReader:
 
         digits_str = ''
         confidences = []
-        for cell_rect, cell_binary in cells:
-            digit, conf = self._classify_cell(cell_binary)
+        for cell_rect, _ in cells:
+            digit, conf = self._classify_cell(binary, cell_rect)
             if digit is not None:
                 digits_str += digit
                 confidences.append(conf)
@@ -196,39 +196,13 @@ class ScaleReader:
 
     # ------------------------------------------------------------------
     def _classify_cell(
-        self, cell_binary: np.ndarray | None, cell_rect: tuple = None,
+        self, roi: np.ndarray, cell_rect: tuple[int, int, int, int],
     ) -> tuple[str | None, float]:
-        """Classify one digit cell using seven-segment analysis."""
-        # For now the cell_binary is None because we pass the whole ROI.
-        # We recompute inside.
-        segs = []
-        ch, cw = self.roi['height'], self.roi['width']
-        for seg_name in ('a', 'b', 'c', 'd', 'e', 'f', 'g'):
-            label_roi = SEGMENT_ROIS[seg_name]
-            sx = int(label_roi[0] * cw)
-            sy = int(label_roi[1] * ch)
-            sw = int(label_roi[2] * cw)
-            sh = int(label_roi[3] * ch)
-            sx = max(0, min(cw - 1, sx))
-            sy = max(0, min(ch - 1, sy))
-            sw = max(1, sw)
-            sh = max(1, sh)
-            segs.append(1 if seg_name != 'x' else 0)
-
-        pattern = tuple(segs)
-        digit = SEGMENT_PATTERNS.get(pattern)
-        if digit is not None:
-            return digit, 1.0
-        return None, 0.0
-
-    # ------------------------------------------------------------------
-    def _classify_digit(self, roi: np.ndarray, cell_rect: tuple) -> tuple[str | None, float]:
         """Classify one digit cell using seven-segment analysis."""
         x, y, cw, ch = cell_rect
         ch_img, cw_img = roi.shape[:2]
 
         segments = {}
-        filled_fracs = {}
         for seg_name, (cx_frac, cy_frac, wr, hr) in SEGMENT_ROIS.items():
             sx = int(cx_frac * cw + x)
             sy = int(cy_frac * ch + y)
@@ -242,18 +216,15 @@ class ScaleReader:
                 sh = ch_img - sy
             if sw <= 0 or sh <= 0:
                 segments[seg_name] = 0
-                filled_fracs[seg_name] = 0.0
                 continue
             patch = roi[sy:sy + sh, sx:sx + sw]
             nonzero = float(np.count_nonzero(patch))
             total = patch.size
-            filled = nonzero / total if total > 0 else 0.0
-            segments[seg_name] = 1 if filled >= self.min_segment_fill else 0
-            filled_fracs[seg_name] = filled
+            segments[seg_name] = 1 if nonzero / total >= self.min_segment_fill else 0
 
-        pattern = tuple(int(segments[k]) for k in ('a', 'b', 'c', 'd', 'e', 'f', 'g'))
+        pattern = tuple(int(segments.get(k, 0)) for k in ('a', 'b', 'c', 'd', 'e', 'f', 'g'))
         digit = SEGMENT_PATTERNS.get(pattern)
-        conf = float(np.mean(list(filled_fracs.values()))) if filled_fracs else 0.0
+        conf = 1.0 if digit is not None else 0.0
         return digit, conf
 
     # ------------------------------------------------------------------
